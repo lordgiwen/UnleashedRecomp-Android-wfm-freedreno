@@ -1,0 +1,51 @@
+name: Build Turnip Smart
+
+on:
+  workflow_dispatch:
+    inputs:
+      variant:
+        description: Driver variant
+        required: true
+        default: wfm-smart3
+        type: choice
+        options:
+          - wfm-smart1
+          - wfm-smart2
+          - wfm-smart3
+          - wfm-a732
+      mesa_ref:
+        description: Mesa branch or commit
+        required: true
+        default: 26.1
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build patchelf unzip flex bison git perl python3-pip glslang-tools ccache zip curl
+          python3 -m pip install --break-system-packages meson mako
+
+      - name: Build Turnip
+        working-directory: turnip-driver-ci
+        env:
+          VARIANT: ${{ inputs.variant }}
+          MESA_REF: ${{ inputs.mesa_ref }}
+        run: |
+          chmod +x turnip_builder.sh
+          ./turnip_builder.sh
+
+      - name: Upload driver
+        uses: actions/upload-artifact@v4
+        with:
+          name: Turnip-${{ inputs.variant }}
+          path: turnip-driver-ci/turnip_workdir/Turnip-*.zip
